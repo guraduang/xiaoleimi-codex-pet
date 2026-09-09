@@ -6,6 +6,8 @@ Thumbs.db
 
 # Never publish modified application packages or local runtime artifacts.
 *.asar
+*.asar.*
 *.dmp
 Crash Reports/
 qa-captures/
+runtime-diagnostics/
