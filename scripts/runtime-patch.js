@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SUPPORTED_APP_VERSION = '26.814.41407';
+const modern = require('./runtime-modern');
 const PET_ID = 'custom:xiaoleimi';
 
 const TARGETS = {
@@ -115,6 +116,8 @@ function readPackageVersion(archive) {
 }
 
 function inspectArchive(asarPath) {
+  const detected = modern.inspect(asarPath);
+  if (detected.appVersion !== SUPPORTED_APP_VERSION) return detected;
   const archive = openAsar(asarPath);
   try {
     const targets = locateTargets(archive);
@@ -128,7 +131,7 @@ function inspectArchive(asarPath) {
         size: buffer.length,
         sha256: digest,
         official: digest === TARGETS[key].officialSha256,
-        patched: TARGETS[key].patchedMarkers.every((marker) => text.includes(marker)),
+        patched: digest === ({frame:'b1bd2e10eca1b34c2e4446f68a05e6e554afc1efe78b4a849d62855397538162',page:'e778b7a2e7fedff8419d2a56c3f43674172a5bbfeb71124ce38f18d5077a6436',petAssets:'f23fbbe15d2841811e0ce6bf704cc9c76e5f5f49113b3660f9d89ca47ab94bb0'})[key],
       };
     }
     const values = Object.values(chunks);
@@ -306,6 +309,7 @@ function applyPatch(inputPath, outputPath) {
   if (path.resolve(inputPath) === path.resolve(outputPath)) fail('Input and output paths must differ');
   if (fs.existsSync(outputPath)) fail('Output path already exists; refusing to overwrite it');
   const initial = inspectArchive(inputPath);
+  if (initial.appVersion !== SUPPORTED_APP_VERSION) return modern.apply(inputPath, outputPath);
   if (initial.status === 'patched') fail('Input is already patched');
   if (initial.status !== 'official-supported' || initial.appVersion !== SUPPORTED_APP_VERSION) {
     fail(`Unsupported input: appVersion=${initial.appVersion || 'unknown'}, status=${initial.status}`);
